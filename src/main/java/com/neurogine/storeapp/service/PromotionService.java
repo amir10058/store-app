@@ -11,5 +11,5 @@ public interface PromotionService {
     List<Promotion> getAllPromotions();
     Promotion updatePromotion(String id, Promotion promotionDetails);
     void deletePromotion(String id);
-    List<String> findPromotionIdsByTitles(List<String> types);
+    List<String> findPromotionIdsByTypes(List<String> types);
 }

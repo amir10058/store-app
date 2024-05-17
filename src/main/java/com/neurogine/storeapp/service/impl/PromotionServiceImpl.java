@@ -67,7 +67,7 @@ public class PromotionServiceImpl implements PromotionService {
         logger.info("Promotion deleted successfully with ID: {}", id);
     }
 
-    public List<String> findPromotionIdsByTitles(List<String> titles) {
+    public List<String> findPromotionIdsByTypes(List<String> titles) {
         logger.info("Fetching promotion IDs by titles: {}", titles);
         List<Promotion> promotions = promotionRepository.findByTypeIn(titles);
         logger.info("Found promotions: {}", promotions);

@@ -2,6 +2,7 @@ package com.neurogine.storeapp.service.impl;
 
 import com.neurogine.storeapp.dto.StoreRequestDTO;
 import com.neurogine.storeapp.exception.ResourceNotFoundException;
+import com.neurogine.storeapp.mappers.StoreMapper;
 import com.neurogine.storeapp.model.Store;
 import com.neurogine.storeapp.repository.StoreRepository;
 import com.neurogine.storeapp.service.PromotionService;
@@ -23,11 +24,13 @@ public class StoreServiceImpl implements StoreService {
     private static final Logger logger = LoggerFactory.getLogger(StoreService.class);
     private final StoreRepository storeRepository;
     private final PromotionService promotionService;
+    private final StoreMapper storeMapper;
 
 
-    public StoreServiceImpl(StoreRepository storeRepository, PromotionService promotionService) {
+    public StoreServiceImpl(StoreRepository storeRepository, PromotionService promotionService, StoreMapper storeMapper) {
         this.promotionService = promotionService;
         this.storeRepository = storeRepository;
+        this.storeMapper = storeMapper;
     }
 
     public List<Store> getAllStores() {
@@ -49,17 +52,9 @@ public class StoreServiceImpl implements StoreService {
     public Store createStore(StoreRequestDTO storeRequestDTO) {
         logger.debug("Creating a new store");
         //TODO: USE MAPSTRUCT OR DOZER INSTEAD OF SETTING ATTRIBUTES MANUALLY.
-        Store store = new Store() {{
-            setName(storeRequestDTO.getName());
-            setCategories(storeRequestDTO.getCategories());
-            setDeliveryTime(storeRequestDTO.getDeliveryTime());
-            setDistanceKm(storeRequestDTO.getDistanceKm());
-            setRating(storeRequestDTO.getRating());
-            setDeliveryFee(storeRequestDTO.getDeliveryFee());
-            setPromo(storeRequestDTO.isPromo());
-        }};
+        Store store = storeMapper.convertDTOToEntity(storeRequestDTO);
         if (!CollectionUtils.isEmpty(storeRequestDTO.getPromotionTypes()))
-            store.setPromotionIds(promotionService.findPromotionIdsByTitles(storeRequestDTO.getPromotionTypes()));
+            store.setPromotionIds(promotionService.findPromotionIdsByTypes(storeRequestDTO.getPromotionTypes()));
         return storeRepository.save(store);
     }
 
@@ -98,7 +93,7 @@ public class StoreServiceImpl implements StoreService {
     public Store addPromotion(String id, String promotionType) {
         logger.debug("Adding promotion to store with id: {}", id);
         Store store = getStoreById(id);
-        List<String> promotionIdsByTypes = promotionService.findPromotionIdsByTitles(List.of(promotionType));
+        List<String> promotionIdsByTypes = promotionService.findPromotionIdsByTypes(List.of(promotionType));
         if (store.getPromotionIds() != null) {
             store.getPromotionIds().addAll(promotionIdsByTypes);
         } else {
@@ -111,7 +106,7 @@ public class StoreServiceImpl implements StoreService {
         logger.debug("Removing promotion from store with id: {}", id);
         Store store = getStoreById(id);
 
-        List<String> promotionIdsToRemoveByTypes = promotionService.findPromotionIdsByTitles(List.of(promotionType));
+        List<String> promotionIdsToRemoveByTypes = promotionService.findPromotionIdsByTypes(List.of(promotionType));
 
         store.setPromotionIds(store.getPromotionIds().stream()
                 .filter(storePromotionId -> !promotionIdsToRemoveByTypes.contains(promotionType))
