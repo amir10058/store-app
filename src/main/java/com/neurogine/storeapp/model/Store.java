@@ -19,6 +19,6 @@ public class Store {
     private double distanceKm;
     private double rating;
     private double deliveryFee;
-    private List<String> categories;
-    private List<String> promotionIds;
+    private List<String> categoryIds; // List of Category IDs
+    private List<String> promotionIds; // List of Promotion IDs
 }

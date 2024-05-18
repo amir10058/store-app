@@ -15,8 +15,10 @@ public interface StoreService {
     void deleteStore(String id);
     List<Store> searchStores(String query);
     Store updatePromo(String id, boolean promo);
-    Store addPromotion(String id, String promotion);
+    Store addPromotion(String id, String promotionType);
     Store removePromotion(String id, String promotionType);
+    Store addCategory(String id, String categoryName);
+    Store removeCategory(String id, String categoryName);
     Store addImage(String id, MultipartFile imageFile) throws IOException;
 
 }

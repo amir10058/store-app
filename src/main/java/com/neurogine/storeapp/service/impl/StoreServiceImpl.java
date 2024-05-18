@@ -5,6 +5,7 @@ import com.neurogine.storeapp.exception.ResourceNotFoundException;
 import com.neurogine.storeapp.mappers.StoreMapper;
 import com.neurogine.storeapp.model.Store;
 import com.neurogine.storeapp.repository.StoreRepository;
+import com.neurogine.storeapp.service.CategoryService;
 import com.neurogine.storeapp.service.PromotionService;
 import com.neurogine.storeapp.service.StoreService;
 import org.bson.types.Binary;
@@ -24,20 +25,18 @@ public class StoreServiceImpl implements StoreService {
     private static final Logger logger = LoggerFactory.getLogger(StoreService.class);
     private final StoreRepository storeRepository;
     private final PromotionService promotionService;
+    private final CategoryService categoryService;
     private final StoreMapper storeMapper;
-
-
-    public StoreServiceImpl(StoreRepository storeRepository, PromotionService promotionService, StoreMapper storeMapper) {
+    public StoreServiceImpl(StoreRepository storeRepository, PromotionService promotionService, CategoryService categoryService, StoreMapper storeMapper) {
         this.promotionService = promotionService;
         this.storeRepository = storeRepository;
         this.storeMapper = storeMapper;
+        this.categoryService = categoryService;
     }
-
     public List<Store> getAllStores() {
         logger.debug("Fetching all stores from the database");
         return storeRepository.findAll();
     }
-
     public Store getStoreById(String id) {
         logger.debug("Fetching store with id: {}", id);
         Optional<Store> store = storeRepository.findById(id);
@@ -48,13 +47,13 @@ public class StoreServiceImpl implements StoreService {
             throw new ResourceNotFoundException("Store not found with id " + id);
         }
     }
-
     public Store createStore(StoreRequestDTO storeRequestDTO) {
         logger.debug("Creating a new store");
-        //TODO: USE MAPSTRUCT OR DOZER INSTEAD OF SETTING ATTRIBUTES MANUALLY.
         Store store = storeMapper.convertDTOToEntity(storeRequestDTO);
         if (!CollectionUtils.isEmpty(storeRequestDTO.getPromotionTypes()))
             store.setPromotionIds(promotionService.findPromotionIdsByTypes(storeRequestDTO.getPromotionTypes()));
+        if (!CollectionUtils.isEmpty(storeRequestDTO.getCategoryNames()))
+            store.setCategoryIds(categoryService.findCategoryIdsByNames(storeRequestDTO.getCategoryNames()));
         return storeRepository.save(store);
     }
 
@@ -67,8 +66,6 @@ public class StoreServiceImpl implements StoreService {
         store.setDistanceKm(storeDetails.getDistanceKm());
         store.setRating(storeDetails.getRating());
         store.setDeliveryFee(storeDetails.getDeliveryFee());
-        store.setCategories(storeDetails.getCategories());
-        store.setPromotionIds(storeDetails.getPromotionIds());
         return storeRepository.save(store);
     }
 
@@ -105,13 +102,30 @@ public class StoreServiceImpl implements StoreService {
     public Store removePromotion(String id, String promotionType) {
         logger.debug("Removing promotion from store with id: {}", id);
         Store store = getStoreById(id);
-
         List<String> promotionIdsToRemoveByTypes = promotionService.findPromotionIdsByTypes(List.of(promotionType));
+        store.setPromotionIds(store.getPromotionIds().stream().filter(storePromotionId -> !promotionIdsToRemoveByTypes.contains(promotionType)).collect(Collectors.toList()));
+        return storeRepository.save(store);
+    }
 
-        store.setPromotionIds(store.getPromotionIds().stream()
-                .filter(storePromotionId -> !promotionIdsToRemoveByTypes.contains(promotionType))
-                .collect(Collectors.toList()));
+    @Override
+    public Store addCategory(String id, String categoryName) {
+        logger.debug("Adding category to store with id: {}", id);
+        Store store = getStoreById(id);
+        List<String> categoryIdsByNames = categoryService.findCategoryIdsByNames(List.of(categoryName));
+        if (store.getCategoryIds() != null) {
+            store.getCategoryIds().addAll(categoryIdsByNames);
+        } else {
+            store.setCategoryIds(categoryIdsByNames);
+        }
+        return storeRepository.save(store);
+    }
 
+    @Override
+    public Store removeCategory(String id, String categoryName) {
+        logger.debug("Removing category from store with id: {}", id);
+        Store store = getStoreById(id);
+        List<String> categoryIdsToRemoveByTypes = categoryService.findCategoryIdsByNames(List.of(categoryName));
+        store.setPromotionIds(store.getPromotionIds().stream().filter(storePromotionId -> !categoryIdsToRemoveByTypes.contains(categoryName)).collect(Collectors.toList()));
         return storeRepository.save(store);
     }
 
@@ -119,8 +133,7 @@ public class StoreServiceImpl implements StoreService {
     public Store addImage(String id, MultipartFile imageFile) throws IOException {
         logger.debug("Adding image to store with id: {}", id);
         Store store = getStoreById(id);
-        if (imageFile != null)
-            store.setImage(new Binary(imageFile.getBytes()));
+        if (imageFile != null) store.setImage(new Binary(imageFile.getBytes()));
         return storeRepository.save(store);
     }
 }

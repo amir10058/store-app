@@ -12,6 +12,6 @@ public class StoreRequestDTO {
     private double distanceKm;
     private double rating;
     private double deliveryFee;
-    private List<String> categories;
+    private List<String> categoryNames;
     private List<String> promotionTypes;
 }
